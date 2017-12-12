@@ -1,5 +1,6 @@
 package hbasepraktikum;
 
+import java.util.List;
 import java.util.Map;
 
 public class App {
@@ -8,13 +9,19 @@ public class App {
 
     public static void main(String[] args) {
 
-        client.createTable();
+        List<PerformanceRow> performanceRows = Util.parseTSV();
+
+        client.deleteTable("actors");
+        client.createTable("actors");
+        client.insertActors(performanceRows);
+
+/*        client.createTable();
         client.createTestData();
 
         singleResult();
         manyResult();
 
-        client.deleteTable();
+        client.deleteTable();*/
     }
 
     private static void manyResult() {

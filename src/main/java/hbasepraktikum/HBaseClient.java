@@ -10,7 +10,9 @@ import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 class HBaseClient {
@@ -42,13 +44,13 @@ class HBaseClient {
         }
     }
 
-    void createTable() {
+    void createTable(String tableName) {
         try {
-            if (!admin.tableExists(TableName.valueOf(TABLE_NAME))) {
-                HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(TABLE_NAME));
-                desc.addFamily(new HColumnDescriptor(COLUMN_FAMILY_NAME));
+            if (!admin.tableExists(TableName.valueOf(tableName))) {
+                HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(tableName));
+                desc.addFamily(new HColumnDescriptor("movies"));
                 admin.createTable(desc);
-                System.out.println("table " + TABLE_NAME + " created");
+                System.out.println("table " + tableName + " created");
             }else {
                 System.out.println("table already exists!");
             }
@@ -119,20 +121,60 @@ class HBaseClient {
         return results;
     }
 
-    void deleteTable() {
+    void deleteTable(String tableName) {
         Table table;
         try {
-            if(admin.tableExists(TableName.valueOf(TABLE_NAME))) {
-                table = connection.getTable(TableName.valueOf(TABLE_NAME));
+            if(admin.tableExists(TableName.valueOf(tableName))) {
+                table = connection.getTable(TableName.valueOf(tableName));
                 admin.disableTable(table.getName());
                 admin.deleteTable(table.getName());
 
-                System.out.println("Table " + TABLE_NAME + " deleted successfully!");
+                System.out.println("Table " + tableName + " deleted successfully!");
             }else {
-                System.out.println("Table " + TABLE_NAME + "doesn't exist!");
+                System.out.println("Table " + tableName + "doesn't exist!");
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public void insertActors(List<PerformanceRow> performanceRows) {
+        String columnFamily = "actors";
+        List<Put> puts = new ArrayList<Put>();
+
+        Table actorTable = null;
+
+            try {
+                if (admin.tableExists(TableName.valueOf("actors"))){
+                    actorTable = connection.getTable(TableName.valueOf("actors"));
+
+                }else{
+                    System.out.println("Table actors doesn't exist!");
+                    return;
+                }
+
+
+                for (PerformanceRow performanceRow : performanceRows) {
+
+                    String actor = performanceRow.getActor();
+                    String movie = performanceRow.getFilm();
+                    String character = performanceRow.getCharacter();
+
+                    Put put = new Put(Bytes.toBytes(actor));
+                    put.addColumn(Bytes.toBytes("movies"), Bytes.toBytes(movie), Bytes.toBytes(character));
+                    //TODO: irgendwie incrementieren
+                    put.addColumn(Bytes.toBytes("movies"), Bytes.toBytes("roles"), Bytes.toBytes(0));
+                    puts.add(put);
+                }
+
+                actorTable.put(puts);
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+
+
+
     }
 }
