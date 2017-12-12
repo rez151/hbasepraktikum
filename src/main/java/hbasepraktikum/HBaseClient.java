@@ -2,7 +2,6 @@ package hbasepraktikum;
 
 import com.google.protobuf.ServiceException;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -11,11 +10,10 @@ import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
-/**
- * Created by reserchr on 11.12.17.
- */
-public class HBaseClient {
+class HBaseClient {
 
     private static final String TABLE_NAME = "test";
     private static final String COLUMN_FAMILY_NAME = "cf1";
@@ -23,22 +21,14 @@ public class HBaseClient {
 
     private static final String[] VALUES = {"value1", "value2", "value3"};
 
-    private Configuration config;
     private Connection connection;
     private Admin admin;
 
-    public HBaseClient() {
+    HBaseClient() {
 
-        config = HBaseConfiguration.create();
-
-/*        String path = this.getClass()
-                .getClassLoader()
-                .getResource("../../../../../INM/Informationssysteme/hbase/hbase-1.2.6/conf/hbase-site.xml")//"/home/reserchr/INM/Informationssysteme/hbase/hbase-1.2.6/conf/hbase-site.xml")
-                .getPath();*/
+        Configuration config = HBaseConfiguration.create();
 
         config.addResource("../../../../../INM/Informationssysteme/hbase/hbase-1.2.6/conf/hbase-site.xml");
-
-        System.out.println(config.get("hbase.zookeeper.quorum"));
 
         try {
             HBaseAdmin.checkHBaseAvailable(config);
@@ -52,14 +42,15 @@ public class HBaseClient {
         }
     }
 
-
-    public void createTable(){
+    void createTable() {
         try {
-            if(!admin.tableExists(TableName.valueOf(TABLE_NAME))){
+            if (!admin.tableExists(TableName.valueOf(TABLE_NAME))) {
                 HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(TABLE_NAME));
                 desc.addFamily(new HColumnDescriptor(COLUMN_FAMILY_NAME));
                 admin.createTable(desc);
                 System.out.println("table " + TABLE_NAME + " created");
+            }else {
+                System.out.println("table already exists!");
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -67,12 +58,12 @@ public class HBaseClient {
 
     }
 
-    public void createTestData() {
+    void createTestData() {
 
         try {
             Table table = connection.getTable(TableName.valueOf(TABLE_NAME));
 
-            System.out.println("Write some greetings to the table");
+            System.out.println("Write some values to the table");
             for (int i = 0; i < VALUES.length; i++) {
                 String rowKey = "row" + i;
 
@@ -85,8 +76,8 @@ public class HBaseClient {
         }
     }
 
-    public String getResultByRowKey(String rowKey) {
-        Table table = null;
+    String getResultByRowKey(String rowKey) {
+        Table table;
         String result = null;
 
         try {
@@ -98,5 +89,50 @@ public class HBaseClient {
             e.printStackTrace();
         }
         return result;
+    }
+
+    Map<String, String> getResultsFromTable() {
+        Table table;
+        ResultScanner scanner;
+        Map<String, String> results = new HashMap<String, String>();
+        Scan scan = new Scan();
+
+        System.out.println("Scan for all values:");
+        try {
+            if(!admin.tableExists(TableName.valueOf(TABLE_NAME))){
+                System.out.println("table " + TABLE_NAME + " doesn't exist!");
+                return null;
+            }
+
+            table = connection.getTable(TableName.valueOf(TABLE_NAME));
+            scanner = table.getScanner(scan);
+            for (Result row : scanner) {
+                String rowKey = Bytes.toString(row.getRow());
+                byte[] valueBytes = row.getValue(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME));
+                String value = Bytes.toString(valueBytes);
+                results.put(rowKey, value);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return results;
+    }
+
+    void deleteTable() {
+        Table table;
+        try {
+            if(admin.tableExists(TableName.valueOf(TABLE_NAME))) {
+                table = connection.getTable(TableName.valueOf(TABLE_NAME));
+                admin.disableTable(table.getName());
+                admin.deleteTable(table.getName());
+
+                System.out.println("Table " + TABLE_NAME + " deleted successfully!");
+            }else {
+                System.out.println("Table " + TABLE_NAME + "doesn't exist!");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
