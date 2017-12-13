@@ -1,6 +1,5 @@
 package hbasepraktikum;
 
-import java.util.List;
 import java.util.Map;
 
 public class App {
@@ -9,11 +8,15 @@ public class App {
 
     public static void main(String[] args) {
 
-        List<PerformanceRow> performanceRows = Util.parseTSV();
-
+/*        List<PerformanceRow> performanceRows = Util.parseTSV();
         client.deleteTable("actors");
         client.createTable("actors");
-        client.insertActors(performanceRows);
+        client.insertActors(performanceRows);*/
+        long roles = client.actorRoleCount("Mel Blanc");
+
+        System.out.println(roles);
+        //long maxRoles = client.getMaxRoles();
+        //client.getActorByRoles(maxRoles);
 
 /*        client.createTable();
         client.createTestData();
@@ -25,7 +28,7 @@ public class App {
     }
 
     private static void manyResult() {
-        Map<String,String> results = client.getResultsFromTable();
+        Map<String, String> results = client.getResultsFromTable();
 
         System.out.println("results:");
         for (Map.Entry<String, String> entry : results.entrySet()) {
