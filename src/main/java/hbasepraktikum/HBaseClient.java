@@ -21,19 +21,12 @@ import java.util.Map;
 
 class HBaseClient {
 
-    private static final String TABLE_NAME = "test";
-    private static final String COLUMN_FAMILY_NAME = "cf1";
-    private static final String COLUMN_NAME = "value";
-
     private static final String CoprocessorClassName = "org.apache.hadoop.hbase.coprocessor.AggregateImplementation";
-
-
-    private static final String[] VALUES = {"value1", "value2", "value3"};
 
     private Connection connection;
     private Admin admin;
     private Configuration config;
-    AggregationClient aggregationClient;
+    private AggregationClient aggregationClient;
 
 
     HBaseClient() {
@@ -69,67 +62,6 @@ class HBaseClient {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-    }
-
-    void createTestData() {
-
-        try {
-            Table table = connection.getTable(TableName.valueOf(TABLE_NAME));
-
-            System.out.println("Write some values to the table");
-            for (int i = 0; i < VALUES.length; i++) {
-                String rowKey = "row" + i;
-
-                Put put = new Put(Bytes.toBytes(rowKey));
-                put.addColumn(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME), Bytes.toBytes(VALUES[i]));
-                table.put(put);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    String getResultByRowKey(String rowKey) {
-        Table table;
-        String result = null;
-
-        try {
-            table = connection.getTable(TableName.valueOf(TABLE_NAME));
-            Result getResult = table.get(new Get(Bytes.toBytes(rowKey)));
-            result = Bytes.toString(getResult.getValue(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME)));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return result;
-    }
-
-    Map<String, String> getResultsFromTable() {
-        Table table;
-        ResultScanner scanner;
-        Map<String, String> results = new HashMap<String, String>();
-        Scan scan = new Scan();
-
-        System.out.println("Scan for all values:");
-        try {
-            if (!admin.tableExists(TableName.valueOf(TABLE_NAME))) {
-                System.out.println("table " + TABLE_NAME + " doesn't exist!");
-                return null;
-            }
-
-            table = connection.getTable(TableName.valueOf(TABLE_NAME));
-            scanner = table.getScanner(scan);
-            for (Result row : scanner) {
-                String rowKey = Bytes.toString(row.getRow());
-                byte[] valueBytes = row.getValue(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME));
-                String value = Bytes.toString(valueBytes);
-                results.put(rowKey, value);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        return results;
     }
 
     void deleteTable(String tableName) {
@@ -140,9 +72,9 @@ class HBaseClient {
                 admin.disableTable(table.getName());
                 admin.deleteTable(table.getName());
 
-                System.out.println("Table " + tableName + " deleted successfully!");
+                System.out.println("table " + tableName + " deleted");
             } else {
-                System.out.println("Table " + tableName + "doesn't exist!");
+                System.out.println("table " + tableName + "doesn't exist!");
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -150,10 +82,9 @@ class HBaseClient {
     }
 
     public void insertActors(List<PerformanceRow> performanceRows) {
-        String columnFamily = "actors";
         List<Put> puts = new ArrayList<Put>();
 
-        Table actorTable = null;
+        Table actorTable;
 
         try {
             if (admin.tableExists(TableName.valueOf("actors"))) {
@@ -182,12 +113,9 @@ class HBaseClient {
             actorTable.put(puts);
 
             System.out.println("actors inserted");
-
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-
     }
 
     public long actorRoleCount(String actor) {
@@ -208,7 +136,6 @@ class HBaseClient {
         }
 
         return result;
-
     }
 
     public long getMaxRoles() {
@@ -228,10 +155,9 @@ class HBaseClient {
     public List<String> getActorByRoles(long value) {
 
         Table table;
+        List<String> results = new ArrayList<String>();
         ResultScanner scanner;
         Scan scan = new Scan();
-        List<String> results = new ArrayList<String>();
-
 
         SingleColumnValueFilter filter = new SingleColumnValueFilter(
                 Bytes.toBytes("movies"),
